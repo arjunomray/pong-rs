@@ -1,7 +1,11 @@
-use std::io::stdout;
+use std::{
+    io::stdout,
+    thread::sleep,
+    time::{Duration, Instant},
+};
 
 use crossterm::{
-    cursor::MoveTo,
+    cursor::{Hide, MoveTo, Show},
     event::{self, Event, KeyCode},
     execute,
     style::Print,
@@ -34,12 +38,20 @@ fn main() {
     let mut dx: i16 = 1;
     let mut dy: i16 = 1;
 
+    match execute!(stdout(), Hide) {
+        Ok(_) => {}
+        Err(e) => eprintln!("Error: {}", e),
+    }
+
     match execute!(stdout(), MoveTo(0, 0), Print("Hello to Pong")) {
         Ok(_) => {}
         Err(e) => eprintln!("Error: {}", e),
     }
 
+    let frame_duration = Duration::from_millis(1000 / 15);
+
     loop {
+        let frame_start = Instant::now();
         match execute!(stdout(), Clear(crossterm::terminal::ClearType::All)) {
             Ok(_) => {}
             Err(e) => eprintln!("Error: {}", e),
@@ -106,7 +118,7 @@ fn main() {
             ball_x += dx;
         }
 
-        if let Ok(true) = event::poll(std::time::Duration::from_millis(100)) {
+        if let Ok(true) = event::poll(Duration::from_millis(0)) {
             if let Event::Key(key) = match event::read() {
                 Ok(event) => event,
                 Err(_) => continue,
@@ -137,5 +149,18 @@ fn main() {
                 }
             }
         }
+        let frame_time = frame_start.elapsed();
+        if frame_time < frame_duration {
+            sleep(frame_duration - frame_time);
+        }
+    }
+    match execute!(stdout(), MoveTo(0, 0), Print("Thanks for playing")) {
+        Ok(_) => {}
+        Err(e) => eprint!("Got error {}", e),
+    }
+
+    match execute!(stdout(), Show) {
+        Ok(_) => {}
+        Err(e) => eprintln!("Error: {}", e),
     }
 }
